@@ -7,7 +7,7 @@ Bugzilla and Gitlab are online and accessible with same credentials given by the
 
 <h3>Usage</h3>
 
-1. Edit `config/config.propterties`. Leave migration.productive to `false` to make a test run. This doesn't import anything but only logs the import data to './log.json'.
+1. Edit `config/config.propterties`. Leave _migration.productive_ to `false` to make a test run. This doesn't import anything but only logs the import data to './log.json'.
 
 2. Run ```mvn clean package```
 
