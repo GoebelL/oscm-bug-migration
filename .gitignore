@@ -1,0 +1,23 @@
+# Tool
+.log
+.error.log
+log.json
+
+# IntelliJ
+*.iml
+*.iws
+*.ipr
+.idea
+out/
+
+# Eclipse
+.classpath
+.settings/
+build/
+bin/
+
+# Windows
+desktop.ini
+
+# Maven
+target/
