@@ -1,5 +1,5 @@
 <p align="center"><h1>oscm-bug-migration</h1></p> 
-<p>This tool migrates all bug entries from given Bugzilla locaton to GitLab including all conversation histories. 
+<p>This tool migrates all bug entries from given Bugzilla location to a GitLab including all conversation histories. 
 </p>
 <h3>Prerequesites</h3>
 
