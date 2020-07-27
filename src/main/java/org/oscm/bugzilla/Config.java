@@ -84,7 +84,7 @@ public class Config {
   }
 
   public boolean isProductiveRun() {
-    return Boolean.valueOf(props.getProperty("migration.productiv", "false")).booleanValue();
+    return Boolean.valueOf(props.getProperty("migration.productive", "false")).booleanValue();
   }
 
   private String ensure(Properties p, String key) { // TODO Auto-generated method stub
