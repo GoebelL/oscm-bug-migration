@@ -7,11 +7,12 @@ Bugzilla and Gitlab are online and accessible with same credentials given by the
 
 <h3>Usage</h3>
 
-1. Edit `config/config.propterties`
+1. Edit `config/config.propterties`. Leave migration.productive to `false` to make a test run. This doesn't import anything but only logs the import data to './log.json'.
 
 2. Run ```mvn clean package```
 
 3. Open a Windows Command Prompt at `oscm-bug-migration/target`
 
 4. Run `oscm-bug-migration-0.0.1-SNAPSHOT-jar-with-dependencies.jar -u <username>`
+
 
