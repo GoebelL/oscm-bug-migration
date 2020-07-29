@@ -59,7 +59,7 @@ public class BugImporter {
     this.projectId = projectId;
   }
 
-  public String getDefaultIssueHeader(String user, Date time, String description) {
+  String getDefaultIssueHeader(String user, Date time, String description) {
     return String.format(
         "Originally reported from: **%s** at %s.\n\n%s",
         user, Migration.DATEFORMAT.format(time), description);

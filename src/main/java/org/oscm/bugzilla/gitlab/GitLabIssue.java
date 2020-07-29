@@ -93,8 +93,8 @@ public class GitLabIssue implements TargetIssue {
   public List<Discussion> importComments(Session s, b4j.core.Issue bug, Issue i) {
     final Map<String, Attachment> map = exportAttachments(s, bug);
     int cnt = 1;
-    insertBugAttachemntInfos(map, cnt, i);
     List<Discussion> dis = new ArrayList<Discussion>();
+    insertBugAttachemntInfos(map, cnt, i);
     for (Comment c : bug.getComments()) {
       String author = c.getAuthor().getName();
       String body = createComment(c);
@@ -113,13 +113,13 @@ public class GitLabIssue implements TargetIssue {
       } catch (GitLabApiException e) { // TODO Auto-generated catch block
         Logger.logError(e);
       }
-    }    
+    }
     return dis;
   }
 
   private void insertBugAttachemntInfos(Map<String, Attachment> map, int cnt, Issue i) {
     if (!map.isEmpty()) {
-     for (String key : map.keySet()) {
+      for (String key : map.keySet()) {
         try {
           createAttachmentNote(map, cnt++, key, i);
         } catch (GitLabApiException e) {
@@ -137,18 +137,34 @@ public class GitLabIssue implements TargetIssue {
     }
   }
 
+  private String getAttachmentTimestamp(Attachment a) {
+    final Object o = a.get(Attachment.UPDATE_TIMESTAMP);
+    String updated;
+    if (o == null) {
+      updated = "undefined";
+      System.out.println("Attachment.UPDATE_TIMESTAMP undefined");
+    } else {
+      if (o instanceof Date) {
+        updated = Migration.DATEFORMAT.format((Date) o);
+        System.out.println("Attachment.UPDATE_TIMESTAMP is Date");
+      } else if (o instanceof String) {
+        updated = Migration.DATEFORMAT.format((String) o);
+        System.out.println("Attachment.UPDATE_TIMESTAMP is String");
+      } else {
+        updated = "undefined";
+      }
+    }
+    return updated;
+  }
   /** @return */
   private String getAttachmentText(Attachment a, int cnt) {
     StringBuffer at = new StringBuffer();
+    final String updated = getAttachmentTimestamp(a);
     at.append(
         String.format(
-            "**Attachment %s**: [%s](%s) Type: %s, Created %s \n",
-            String.valueOf(cnt),
-            a.getFilename(),
-            a.get("URL"),
-            a.getType(),
-            Migration.DATEFORMAT.format(a.getDate())));
-    at.append(a.getDescription());
+            "**Attachment %s**: [%s](%s) (Type: %s) - Modified: %s",
+            String.valueOf(cnt), a.getFilename(), a.get("URL"), a.getType(), updated));
+    at.append("<br>Description:" + a.getDescription());
     at.append("\n");
     return at.toString();
   }
