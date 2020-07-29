@@ -20,7 +20,6 @@ import java.util.stream.Collectors;
 
 import org.gitlab4j.api.GitLabApi;
 import org.gitlab4j.api.GitLabApiException;
-import org.gitlab4j.api.ProxyClientConfig;
 import org.gitlab4j.api.models.Discussion;
 import org.gitlab4j.api.models.Issue;
 import org.oscm.bugzilla.gitlab.IssueFactory;
@@ -49,12 +48,8 @@ public class BugImporter {
   void connect(String url, String[] credentials, String projectId) throws ConnectException {
 
     try {
-
-      Map<String, Object> proxyConfig =
-         ProxyClientConfig.createProxyClientConfig("http://proxy.intern.est.fujitsu.com:8080");
-
       client = GitLabApi.oauth2Login(url, credentials[0], credentials[1]);
-      
+
       client.setRequestTimeout(15000, 20000);
     } catch (GitLabApiException e) {
       System.err.println("Error accessing " + url);
@@ -66,7 +61,7 @@ public class BugImporter {
 
   public String getDefaultIssueHeader(String user, Date time, String description) {
     return String.format(
-        "Originally reported from: **%s** at %s.\n\n\\%s",
+        "Originally reported from: **%s** at %s.\n\n%s",
         user, Migration.DATEFORMAT.format(time), description);
   }
 
@@ -90,7 +85,7 @@ public class BugImporter {
     return !bug.getStatus().isOpen();
   }
 
-  private String getIssueStateLabel(b4j.core.Issue bug) {
+  private String getIssueTypeLabel(b4j.core.Issue bug) {
     if ("enhancement".equals(bug.getSeverity().getName().toLowerCase())) {
       return Config.getInstance().TARGET_LABEL_ENHANCEMENT;
     } else {
@@ -98,8 +93,12 @@ public class BugImporter {
     }
   }
 
+  private String getIssueStateLabel(b4j.core.Issue bug) {
+    return "state: " + bug.getStatus().getName();
+  }
+
   private String getIssuePrioLabel(b4j.core.Issue bug) {
-    return bug.getPriority().getName();
+    return "prio: " + bug.getPriority().getName();
   }
 
   private String getProjectLabel() {
@@ -108,8 +107,9 @@ public class BugImporter {
 
   private String getLabels(b4j.core.Issue bug) {
     return String.format(
-        "%s,%s,%s,%s",
+        "%s,%s,%s,%s,%s,%s,%s",
         getProjectLabel(),
+        getIssueTypeLabel(bug),
         getIssueStateLabel(bug),
         getIssuePrioLabel(bug),
         getVersionLabels(bug),
@@ -117,14 +117,13 @@ public class BugImporter {
         getMilestoneLabel(bug));
   }
 
-  private String getComponentLabels(b4j.core.Issue bug) { // TODO Auto-generated method stub
-
+  private String getComponentLabels(b4j.core.Issue bug) { 
     StringBuffer b = new StringBuffer();
     for (Iterator<Component> it = bug.getComponents().iterator(); it.hasNext(); ) {
+      b.append("comp: "); 
       b.append(it.next().getName());
       if (it.hasNext()) b.append(",");
     }
-
     return b.toString();
   }
 
@@ -134,14 +133,13 @@ public class BugImporter {
       b.append(it.next().getName());
       if (it.hasNext()) b.append(",");
     }
-
     return b.toString();
   }
 
-  private Object getMilestoneLabel(b4j.core.Issue bug) { // TODO Auto-generated method stub
+  private Object getMilestoneLabel(b4j.core.Issue bug) {
     StringBuffer b = new StringBuffer();
     for (Iterator<Version> it = bug.getFixVersions().iterator(); it.hasNext(); ) {
-      b.append(it.next().getName());
+      b.append("milestone:" + it.next().getName());
       if (it.hasNext()) b.append(",");
     }
     return b.toString();

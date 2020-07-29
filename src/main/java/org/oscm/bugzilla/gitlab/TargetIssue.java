@@ -54,9 +54,7 @@ public interface TargetIssue {
   /** Imports all bug attachments of the given issue. */
   public Map<String, Attachment> exportAttachments(Session s, b4j.core.Issue bug);
 
-  /**
-   * Create an issue comment text from the given bug comment.
-   */
+  /** Create an issue comment text from the given bug comment. */
   default String createComment(Comment c) {
     StringBuffer sb = new StringBuffer();
     sb.append("Commented by ");
@@ -65,14 +63,15 @@ public interface TargetIssue {
     sb.append("**");
     sb.append(" at ");
     sb.append(Migration.DATEFORMAT.format(c.getUpdateTimestamp()));
-    sb.append(":\n");
-    sb.append(c.getTheText());
+    sb.append(":\n\n");
+    String txt = c.getTheText().replace("\n", "<br>"); 
+    sb.append(txt);
     return sb.toString();
   }
 
-  /**
-   * Create an issue title from the given bug summary.
-   */
+  
+
+  /** Create an issue title from the given bug summary. */
   default String getSummary(b4j.core.Issue b) {
     StringBuffer sb = new StringBuffer();
     sb.append("[");
@@ -81,9 +80,7 @@ public interface TargetIssue {
     sb.append(b.getSummary());
     return sb.toString();
   }
-  
-  /**
-   * Delete the issue with the given Id.
-   */
+
+  /** Delete the issue with the given Id. */
   public void delete(Integer issueId) throws GitLabApiException;
 }

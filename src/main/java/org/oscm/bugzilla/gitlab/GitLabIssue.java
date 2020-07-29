@@ -69,7 +69,6 @@ public class GitLabIssue implements TargetIssue {
   @Override
   public void closeIssue(b4j.core.Issue bug, final String labels, Issue i)
       throws GitLabApiException {
-
     try {
       client
           .getIssuesApi()
@@ -85,7 +84,7 @@ public class GitLabIssue implements TargetIssue {
               StateEvent.CLOSE,
               bug.getUpdateTimestamp(),
               new Date());
-    } catch (GitLabApiException e) { // TODO Auto-generated catch block
+    } catch (GitLabApiException e) {
       Logger.logError(e);
     }
   }
@@ -94,6 +93,7 @@ public class GitLabIssue implements TargetIssue {
   public List<Discussion> importComments(Session s, b4j.core.Issue bug, Issue i) {
     final Map<String, Attachment> map = exportAttachments(s, bug);
     int cnt = 1;
+    insertBugAttachemntInfos(map, cnt, i);
     List<Discussion> dis = new ArrayList<Discussion>();
     for (Comment c : bug.getComments()) {
       String author = c.getAuthor().getName();
@@ -113,16 +113,15 @@ public class GitLabIssue implements TargetIssue {
       } catch (GitLabApiException e) { // TODO Auto-generated catch block
         Logger.logError(e);
       }
-    }
-    insertBugAttachemntInfos(map, cnt, i);
+    }    
     return dis;
   }
 
   private void insertBugAttachemntInfos(Map<String, Attachment> map, int cnt, Issue i) {
     if (!map.isEmpty()) {
-      for (String key : map.keySet()) {
+     for (String key : map.keySet()) {
         try {
-          createAttachmentNote(map, cnt, key, i);
+          createAttachmentNote(map, cnt++, key, i);
         } catch (GitLabApiException e) {
           Logger.logError(e);
         }
@@ -134,9 +133,8 @@ public class GitLabIssue implements TargetIssue {
       throws GitLabApiException {
     Attachment a = map.get(aId);
     if (a != null) {
-      client.getNotesApi().createIssueNote(projectId, i.getIid(), getAttachmentText(a, cnt++));
+      client.getNotesApi().createIssueNote(projectId, i.getIid(), getAttachmentText(a, cnt));
     }
-    map.remove(aId);
   }
 
   /** @return */
