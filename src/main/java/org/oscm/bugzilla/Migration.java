@@ -9,7 +9,6 @@
  */
 package org.oscm.bugzilla;
 
-import java.io.File;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -20,7 +19,6 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.apache.commons.configuration.ConfigurationException;
-import org.apache.commons.configuration.XMLConfiguration;
 import org.gitlab4j.api.GitLabApiException;
 import org.oscm.bugzilla.model.BugObject;
 
@@ -58,23 +56,32 @@ public class Migration {
 
     BugzillaHttpSession session = getSession();
     if (session.open()) {
-      BugImporter gitLab = new BugImporter();
-      gitLab.connect(CONFIG.GITLAB_BASEURL, credentials, CONFIG.TARGET_PROJECT_ID);
-      DefaultSearchData search = new DefaultSearchData();
+      BugImporter gitLab = new BugImporter(session);
 
+      gitLab.connect(CONFIG.GITLAB_BASEURL, credentials, CONFIG.TARGET_PROJECT_ID);
+      handleDelete(args, gitLab);
+
+      DefaultSearchData search = new DefaultSearchData();
       search.add("product", CONFIG.SOURCE_PROJECT);
       search.add("limit", "0");
-      
+
       Iterable<Issue> i = session.searchBugs(search, null);
       for (Issue bug : i) {
         if (null == map.get(bug.getId())) {
           if (!gitLab.importIssue(bug, map)) {
             continue;
           }
-          //  break;
         }
       }
       session.close();
+    }
+  }
+
+  private void handleDelete(String[] args, BugImporter gitLab)
+      throws GitLabApiException {
+    String delete = CmdLine.parseArguments(args).get("-d");
+    if (delete != null) {
+      gitLab.deleteAllIssues();
     }
   }
 
@@ -102,14 +109,9 @@ public class Migration {
 
   public BugzillaHttpSession getSession() throws MalformedURLException, ConfigurationException {
 
-    // Configure from file
-    XMLConfiguration myConfig = new XMLConfiguration(new File("config.xml"));
-
     BugzillaHttpSession se = new BugzillaHttpSession();
     HttpSessionParams sp = new HttpSessionParams();
-
     AuthorizationCallback ac = new SimpleAuthorizationCallback(credentials[0], credentials[1]);
-
     sp.setAuthorizationCallback(ac);
     // sp.setProxyHost("proxy.intern.est.fujitsu.com");
     // sp.setProxyPort(8080);

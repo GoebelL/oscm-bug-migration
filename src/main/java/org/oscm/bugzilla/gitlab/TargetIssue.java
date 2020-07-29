@@ -10,13 +10,16 @@
 package org.oscm.bugzilla.gitlab;
 
 import java.util.List;
+import java.util.Map;
 
 import org.gitlab4j.api.GitLabApiException;
 import org.gitlab4j.api.models.Discussion;
 import org.gitlab4j.api.models.Issue;
 import org.oscm.bugzilla.Migration;
 
+import b4j.core.Attachment;
 import b4j.core.Comment;
+import b4j.core.Session;
 
 /** @author goebel */
 public interface TargetIssue {
@@ -46,8 +49,14 @@ public interface TargetIssue {
       throws GitLabApiException;
 
   /** Imports all comments of the given issue. */
-  public List<Discussion> importComments(b4j.core.Issue bug, Issue i);
+  public List<Discussion> importComments(Session s, b4j.core.Issue bug, Issue i);
 
+  /** Imports all bug attachments of the given issue. */
+  public Map<String, Attachment> exportAttachments(Session s, b4j.core.Issue bug);
+
+  /**
+   * Create an issue comment text from the given bug comment.
+   */
   default String createComment(Comment c) {
     StringBuffer sb = new StringBuffer();
     sb.append("Commented by ");
@@ -61,6 +70,9 @@ public interface TargetIssue {
     return sb.toString();
   }
 
+  /**
+   * Create an issue title from the given bug summary.
+   */
   default String getSummary(b4j.core.Issue b) {
     StringBuffer sb = new StringBuffer();
     sb.append("[");
@@ -69,4 +81,9 @@ public interface TargetIssue {
     sb.append(b.getSummary());
     return sb.toString();
   }
+  
+  /**
+   * Delete the issue with the given Id.
+   */
+  public void delete(Integer issueId) throws GitLabApiException;
 }

@@ -13,6 +13,7 @@ import java.io.IOException;
 import java.net.ConnectException;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -27,6 +28,10 @@ import org.oscm.bugzilla.gitlab.TargetIssue;
 import org.oscm.bugzilla.model.BugObject;
 import org.oscm.bugzilla.model.CommentObject;
 
+import b4j.core.Component;
+import b4j.core.Version;
+import b4j.core.session.BugzillaHttpSession;
+
 /** @author goebel */
 public class BugImporter {
 
@@ -34,6 +39,11 @@ public class BugImporter {
   private String projectId;
 
   private List<Issue> allIssues = null;
+  private BugzillaHttpSession session = null;
+  /** @param session */
+  public BugImporter(BugzillaHttpSession session) {
+    this.session = session;
+  }
 
   @SuppressWarnings("boxing")
   void connect(String url, String[] credentials, String projectId) throws ConnectException {
@@ -41,10 +51,10 @@ public class BugImporter {
     try {
 
       Map<String, Object> proxyConfig =
-          ProxyClientConfig.createProxyClientConfig("http://proxy.intern.est.fujitsu.com:8080");
+         ProxyClientConfig.createProxyClientConfig("http://proxy.intern.est.fujitsu.com:8080");
 
-      client = GitLabApi.oauth2Login(url, credentials[0], credentials[1], null, proxyConfig, true);
-
+      client = GitLabApi.oauth2Login(url, credentials[0], credentials[1]);
+      
       client.setRequestTimeout(15000, 20000);
     } catch (GitLabApiException e) {
       System.err.println("Error accessing " + url);
@@ -60,7 +70,7 @@ public class BugImporter {
         user, Migration.DATEFORMAT.format(time), description);
   }
 
-  private List<Issue> getAllIssues() throws GitLabApiException {
+  List<Issue> getAllIssues() throws GitLabApiException {
     if (allIssues == null) {
       allIssues = client.getIssuesApi().getIssues(projectId);
     }
@@ -96,9 +106,45 @@ public class BugImporter {
     return Config.getInstance().PROJECT_LABEL;
   }
 
-  private String getLabels(b4j.core.Issue bug) { 
+  private String getLabels(b4j.core.Issue bug) {
     return String.format(
-        "%s,%s,%s", getProjectLabel(), getIssueStateLabel(bug), getIssuePrioLabel(bug));
+        "%s,%s,%s,%s",
+        getProjectLabel(),
+        getIssueStateLabel(bug),
+        getIssuePrioLabel(bug),
+        getVersionLabels(bug),
+        getComponentLabels(bug),
+        getMilestoneLabel(bug));
+  }
+
+  private String getComponentLabels(b4j.core.Issue bug) { // TODO Auto-generated method stub
+
+    StringBuffer b = new StringBuffer();
+    for (Iterator<Component> it = bug.getComponents().iterator(); it.hasNext(); ) {
+      b.append(it.next().getName());
+      if (it.hasNext()) b.append(",");
+    }
+
+    return b.toString();
+  }
+
+  private String getVersionLabels(b4j.core.Issue bug) {
+    StringBuffer b = new StringBuffer();
+    for (Iterator<Version> it = bug.getAffectedVersions().iterator(); it.hasNext(); ) {
+      b.append(it.next().getName());
+      if (it.hasNext()) b.append(",");
+    }
+
+    return b.toString();
+  }
+
+  private Object getMilestoneLabel(b4j.core.Issue bug) { // TODO Auto-generated method stub
+    StringBuffer b = new StringBuffer();
+    for (Iterator<Version> it = bug.getFixVersions().iterator(); it.hasNext(); ) {
+      b.append(it.next().getName());
+      if (it.hasNext()) b.append(",");
+    }
+    return b.toString();
   }
 
   public boolean importIssue(b4j.core.Issue bug, Map<String, BugObject> map)
@@ -129,24 +175,27 @@ public class BugImporter {
   private void writeToLogs(
       b4j.core.Issue bug, List<Discussion> discussions, Map<String, BugObject> map, Issue i)
       throws IOException {
-     
-    System.out.println(String.format("Bug %s imported as Issue #%s to GitLab project %s.", bug.getId(), i.getIid(), projectId));
-    BugObject m =  getBugModel(bug, discussions, i);
+
+    System.out.println(
+        String.format(
+            "Bug %s imported as Issue #%s to GitLab project %s.",
+            bug.getId(), i.getIid(), projectId));
+    BugObject m = getBugModel(bug, discussions, i);
     Logger.instance().writeBug(m);
     map.put(bug.getId(), m);
   }
 
-  BugObject getBugModel( b4j.core.Issue bug, List<Discussion> discussions, Issue i) {
-      List<CommentObject> comments = new ArrayList<CommentObject>();
-      for (Discussion d : discussions) {
-          d.getNotes().stream().forEach(n -> comments.add(new CommentObject(n.getBody())));
-        ;
-      }
-      return new BugObject(bug, comments, String.valueOf(i.getIid()));
+  BugObject getBugModel(b4j.core.Issue bug, List<Discussion> discussions, Issue i) {
+    List<CommentObject> comments = new ArrayList<CommentObject>();
+    for (Discussion d : discussions) {
+      d.getNotes().stream().forEach(n -> comments.add(new CommentObject(n.getBody())));
+      ;
+    }
+    return new BugObject(bug, comments, String.valueOf(i.getIid()));
   }
-  
+
   private List<Discussion> importComments(TargetIssue ti, b4j.core.Issue bug, Issue i) {
-    return ti.importComments(bug, i);
+    return ti.importComments(session, bug, i);
   }
 
   private void closeIfNotOpen(TargetIssue ti, b4j.core.Issue bug, final String labels, Issue i)
@@ -163,5 +212,13 @@ public class BugImporter {
         labels,
         getDefaultIssueHeader(
             bug.getReporter().getId(), bug.getCreationTimestamp(), bug.getDescription()));
+  }
+
+  public void deleteAllIssues() throws GitLabApiException {
+    for (Issue i : getAllIssues()) {
+      String url = i.getWebUrl();
+      IssueFactory.getInstance().newTargetIssue(client, projectId).delete(i.getIid());
+      System.out.println(String.format("GitLab issue %s deleted.", url));
+    }
   }
 }

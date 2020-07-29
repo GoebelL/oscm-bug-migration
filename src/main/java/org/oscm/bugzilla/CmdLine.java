@@ -15,10 +15,12 @@ import java.io.InputStreamReader;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 
 /** @author goebel */
 public class CmdLine {
+  private static List<String> SINGLEOPTIONS = Arrays.asList(new String[]{"-d"});
   static String readLine(String format, Object... args) throws IOException {
     if (System.console() != null) {
       return System.console().readLine(format, args);
@@ -35,6 +37,10 @@ public class CmdLine {
         String key = arg.next();
         if (!key.startsWith("-")) {
             throw new RuntimeException(String.format("Unknown argument %s. Use -u username -p password ..", key));
+        }
+        if (SINGLEOPTIONS.contains(key)) {
+            opts.put(key, "true");
+            continue;
         }
         if (arg.hasNext()) {
           opts.put(key, arg.next());
