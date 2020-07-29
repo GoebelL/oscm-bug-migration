@@ -164,7 +164,7 @@ public class GitLabIssue implements TargetIssue {
         String.format(
             "**Attachment %s**: [%s](%s) (Type: %s) - Modified: %s",
             String.valueOf(cnt), a.getFilename(), a.get("URL"), a.getType(), updated));
-    at.append("<br>Description:" + a.getDescription());
+    at.append("<br>Description: " + a.getDescription());
     at.append("\n");
     return at.toString();
   }
