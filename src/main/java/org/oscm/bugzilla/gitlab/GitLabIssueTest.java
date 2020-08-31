@@ -108,8 +108,8 @@ public class GitLabIssueTest implements TargetIssue {
     if (a != null) {
       String att =
           String.format(
-              "Attachement %s, URL: %s, Type: %s, created %s",
-              String.valueOf(cnt++), a.get("URL"), a.getType(), Migration.DATEFORMAT.format(a.getDate()));
+              "Attachement URL: %s, Type: %s, created %s",
+              a.get("URL"), a.getType(), Migration.DATEFORMAT.format(a.getDate()));
       cm = cm + "\n" + att;
     }
     map.remove(aId);
@@ -149,11 +149,10 @@ public class GitLabIssueTest implements TargetIssue {
     return fileUpload;
   }
 
-  /** 
-   * @see org.oscm.bugzilla.gitlab.TargetIssue#delete(java.lang.Integer)
-   */
+  public void updateDiscussion(String old, String replace, String id)
+      throws NumberFormatException, GitLabApiException {}
+
+  /** @see org.oscm.bugzilla.gitlab.TargetIssue#delete(java.lang.Integer) */
   @Override
-  public void delete(Integer issueId) throws GitLabApiException { 
-      
-  }
+  public void delete(Integer issueId) throws GitLabApiException {}
 }

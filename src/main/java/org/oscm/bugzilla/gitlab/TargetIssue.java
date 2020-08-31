@@ -64,12 +64,9 @@ public interface TargetIssue {
     sb.append(" at ");
     sb.append(Migration.DATEFORMAT.format(c.getUpdateTimestamp()));
     sb.append(":\n\n");
-    String txt = c.getTheText().replace("\n", "<br>"); 
-    sb.append(txt);
+    sb.append(Migration.replaceText(c.getTheText()));
     return sb.toString();
   }
-
-  
 
   /** Create an issue title from the given bug summary. */
   default String getSummary(b4j.core.Issue b) {
@@ -81,6 +78,18 @@ public interface TargetIssue {
     return sb.toString();
   }
 
+  public void updateDiscussion(String old, String replace, String id)
+      throws NumberFormatException, GitLabApiException;
+
   /** Delete the issue with the given Id. */
   public void delete(Integer issueId) throws GitLabApiException;
+
+  public default boolean isContained(List<Issue> issues, b4j.core.Issue bug) {
+    for (Issue i : issues) {
+      if (i.getTitle().contains(bug.getSummary())) {
+        return true;
+      }
+    }
+    return false;
+  }
 }

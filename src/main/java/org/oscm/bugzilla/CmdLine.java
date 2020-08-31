@@ -20,7 +20,7 @@ import java.util.Map;
 
 /** @author goebel */
 public class CmdLine {
-  private static List<String> SINGLEOPTIONS = Arrays.asList(new String[]{"-d"});
+  private static List<String> SINGLEOPTIONS = Arrays.asList(new String[]{"-d", "-alo"});
   static String readLine(String format, Object... args) throws IOException {
     if (System.console() != null) {
       return System.console().readLine(format, args);

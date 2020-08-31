@@ -18,8 +18,11 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Pattern;
+import java.util.stream.Stream;
 
 import org.gitlab4j.api.Constants.StateEvent;
 import org.gitlab4j.api.GitLabApi;
@@ -27,6 +30,7 @@ import org.gitlab4j.api.GitLabApiException;
 import org.gitlab4j.api.models.Discussion;
 import org.gitlab4j.api.models.FileUpload;
 import org.gitlab4j.api.models.Issue;
+import org.gitlab4j.api.models.Note;
 import org.oscm.bugzilla.Logger;
 import org.oscm.bugzilla.Migration;
 
@@ -39,6 +43,7 @@ public class GitLabIssue implements TargetIssue {
   private GitLabApi client;
 
   private String projectId;
+  private int attachmentCnt = 1;
 
   GitLabIssue(GitLabApi client, String projectId) {
     this.client = client;
@@ -92,9 +97,9 @@ public class GitLabIssue implements TargetIssue {
   @Override
   public List<Discussion> importComments(Session s, b4j.core.Issue bug, Issue i) {
     final Map<String, Attachment> map = exportAttachments(s, bug);
-    int cnt = 1;
+    attachmentCnt = 1;
     List<Discussion> dis = new ArrayList<Discussion>();
-    insertBugAttachemntInfos(map, cnt, i);
+    insertBugAttachemntInfos(map, attachmentCnt, i);
     for (Comment c : bug.getComments()) {
       String author = c.getAuthor().getName();
       String body = createComment(c);
@@ -107,7 +112,8 @@ public class GitLabIssue implements TargetIssue {
         for (String aId : c.getAttachments()) {
           Attachment a = map.get(aId);
           if (a != null) {
-            createAttachmentNote(map, cnt, aId, i);
+            createAttachmentNote(map, attachmentCnt++, aId, i);
+            map.remove(aId);
           }
         }
       } catch (GitLabApiException e) { // TODO Auto-generated catch block
@@ -119,9 +125,11 @@ public class GitLabIssue implements TargetIssue {
 
   private void insertBugAttachemntInfos(Map<String, Attachment> map, int cnt, Issue i) {
     if (!map.isEmpty()) {
+
       for (String key : map.keySet()) {
         try {
           createAttachmentNote(map, cnt++, key, i);
+
         } catch (GitLabApiException e) {
           Logger.logError(e);
         }
@@ -129,12 +137,39 @@ public class GitLabIssue implements TargetIssue {
     }
   }
 
-  void createAttachmentNote(Map<String, Attachment> map, int cnt, String aId, Issue i)
+  public void updateDiscussion(String old, String replace, String id)
+      throws NumberFormatException, GitLabApiException {
+    Stream<Discussion> i =
+        client.getDiscussionsApi().getIssueDiscussionsStream(projectId, Integer.valueOf(id));
+    for (Iterator<Discussion> iter = i.iterator(); iter.hasNext(); ) {
+      Discussion d = iter.next();
+      for (Iterator<Note> i2 = d.getNotes().iterator(); i2.hasNext(); ) {
+        Note n = i2.next();
+        String body = n.getBody();
+        if (body.contains(old)) {
+          System.out.println(
+              String.format("Replace issue #%s, disusion %s note %s.", id, d.getId(), n.getId()));
+          client
+              .getDiscussionsApi()
+              .modifyIssueThreadNote(projectId, Integer.valueOf(id), d.getId(), n.getId(), replace);
+        }
+      }
+    }
+  }
+
+  Note createAttachmentNote(Map<String, Attachment> map, int cnt, String aId, Issue i)
       throws GitLabApiException {
     Attachment a = map.get(aId);
     if (a != null) {
-      client.getNotesApi().createIssueNote(projectId, i.getIid(), getAttachmentText(a, cnt));
+      return client
+          .getNotesApi()
+          .createIssueNote(
+              projectId,
+              i.getIid(),
+              getAttachmentText(a, cnt),
+              (Date) a.get(Attachment.UPDATE_TIMESTAMP));
     }
+    return null;
   }
 
   private String getAttachmentTimestamp(Attachment a) {
@@ -146,10 +181,8 @@ public class GitLabIssue implements TargetIssue {
     } else {
       if (o instanceof Date) {
         updated = Migration.DATEFORMAT.format((Date) o);
-        System.out.println("Attachment.UPDATE_TIMESTAMP is Date");
       } else if (o instanceof String) {
         updated = Migration.DATEFORMAT.format((String) o);
-        System.out.println("Attachment.UPDATE_TIMESTAMP is String");
       } else {
         updated = "undefined";
       }
@@ -162,8 +195,8 @@ public class GitLabIssue implements TargetIssue {
     final String updated = getAttachmentTimestamp(a);
     at.append(
         String.format(
-            "**Attachment %s**: [%s](%s) (Type: %s) - Modified: %s",
-            String.valueOf(cnt), a.getFilename(), a.get("URL"), a.getType(), updated));
+            "**Attachment**: [%s](%s) (%s) - Modified: %s",
+            a.getFilename(), a.get("URL"), a.getType(), updated));
     at.append("<br>Description: " + a.getDescription());
     at.append("\n");
     return at.toString();
@@ -186,13 +219,23 @@ public class GitLabIssue implements TargetIssue {
   public Map<String, Attachment> exportAttachments(Session s, b4j.core.Issue bug) {
     HashMap<String, Attachment> map = new HashMap<String, Attachment>();
     final Collection<Attachment> ac = bug.getAttachments();
+    InputStream is = null;
     for (Attachment a : ac) {
-      try (InputStream is = s.getAttachment(a)) {
+      try {
+        is = s.getAttachment(a);
         final FileUpload uf = copyFile(is, a.getType());
         a.set("URL", uf.getUrl());
         map.put(a.getId(), a);
       } catch (GitLabApiException | IOException e) {
         Logger.logError(e);
+      } finally {
+        if (is != null) {
+          try {
+            is.close();
+          } catch (IOException e) {
+            e.printStackTrace();
+          }
+        }
       }
     }
     return map;

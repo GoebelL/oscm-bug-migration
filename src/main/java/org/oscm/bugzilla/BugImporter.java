@@ -16,6 +16,7 @@ import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import org.gitlab4j.api.GitLabApi;
@@ -39,6 +40,11 @@ public class BugImporter {
 
   private List<Issue> allIssues = null;
   private BugzillaHttpSession session = null;
+
+  private Pattern DUPLICATE_PATTERN =
+      Pattern.compile("(.*has/sbeen/smarked/sas/sa/sduplicate/sof/sbug/s)(.*)");
+  private Pattern BUG_PATTERN = Pattern.compile(".*bug.\\#\\s+([0-9]*)");
+
   /** @param session */
   public BugImporter(BugzillaHttpSession session) {
     this.session = session;
@@ -62,7 +68,7 @@ public class BugImporter {
   String getDefaultIssueHeader(String user, Date time, String description) {
     return String.format(
         "Originally reported from: **%s** at %s.\n\n%s",
-        user, Migration.DATEFORMAT.format(time), description);
+        user, Migration.DATEFORMAT.format(time), Migration.replaceText(description));
   }
 
   List<Issue> getAllIssues() throws GitLabApiException {
@@ -70,15 +76,6 @@ public class BugImporter {
       allIssues = client.getIssuesApi().getIssues(projectId);
     }
     return allIssues;
-  }
-
-  public boolean isContained(List<Issue> issues, b4j.core.Issue bug) {
-    for (Issue i : issues) {
-      if (bug.getSummary().equals(i.getTitle())) {
-        return true;
-      }
-    }
-    return false;
   }
 
   private boolean isClosed(b4j.core.Issue bug) {
@@ -106,21 +103,27 @@ public class BugImporter {
   }
 
   private String getLabels(b4j.core.Issue bug) {
-    return String.format(
-        "%s,%s,%s,%s,%s,%s,%s",
-        getProjectLabel(),
-        getIssueTypeLabel(bug),
-        getIssueStateLabel(bug),
-        getIssuePrioLabel(bug),
-        getVersionLabels(bug),
-        getComponentLabels(bug),
-        getMilestoneLabel(bug));
+
+    String l =
+        String.format(
+            "%s,%s,%s,%s,%s,%s,%s",
+            getProjectLabel(),
+            getIssueTypeLabel(bug),
+            getIssueStateLabel(bug),
+            getIssuePrioLabel(bug),
+            getVersionLabels(bug),
+            getComponentLabels(bug),
+            getMilestoneLabel(bug));
+    if (bug.isResolved() || bug.isClosed()) {
+      l += (",resolution: " + bug.getResolution().getName());
+    }
+    return l;
   }
 
-  private String getComponentLabels(b4j.core.Issue bug) { 
+  private String getComponentLabels(b4j.core.Issue bug) {
     StringBuffer b = new StringBuffer();
     for (Iterator<Component> it = bug.getComponents().iterator(); it.hasNext(); ) {
-      b.append("comp: "); 
+      b.append("comp: ");
       b.append(it.next().getName());
       if (it.hasNext()) b.append(",");
     }
@@ -139,7 +142,7 @@ public class BugImporter {
   private Object getMilestoneLabel(b4j.core.Issue bug) {
     StringBuffer b = new StringBuffer();
     for (Iterator<Version> it = bug.getFixVersions().iterator(); it.hasNext(); ) {
-      b.append("milestone:" + it.next().getName());
+      b.append("milestone: " + it.next().getName());
       if (it.hasNext()) b.append(",");
     }
     return b.toString();
@@ -148,13 +151,12 @@ public class BugImporter {
   public boolean importIssue(b4j.core.Issue bug, Map<String, BugObject> map)
       throws GitLabApiException, IOException {
 
-    // Skip already imported bugs
-    if (isContained(getAllIssues(), bug)) {
-      return false;
-    }
-
     TargetIssue ti = IssueFactory.getInstance().newTargetIssue(client, projectId);
 
+    // Skip already imported bugs
+    if (ti.isContained(getAllIssues(), bug)) {
+      return false;
+    }
     // Import to GitLab
     Issue i = importIssue(ti, bug, getLabels(bug));
 
@@ -217,6 +219,30 @@ public class BugImporter {
       String url = i.getWebUrl();
       IssueFactory.getInstance().newTargetIssue(client, projectId).delete(i.getIid());
       System.out.println(String.format("GitLab issue %s deleted.", url));
+    }
+    allIssues = null;
+  }
+
+  public void updateComment(Map<String, BugObject> m, CommentObject c, BugObject o)
+      throws NumberFormatException, GitLabApiException {
+    updateCommentForPattern(m, c, DUPLICATE_PATTERN, o.getBugId());
+    updateCommentForPattern(m, c, BUG_PATTERN, o.getBugId());
+  }
+
+  private void updateCommentForPattern(Map<String, BugObject> m, CommentObject c, Pattern p, String bugId)
+      throws GitLabApiException {
+    String desc = c.getDescription();
+    if (desc.matches(p.pattern())) {
+      System.out.print(String.format("[%s] Found matching link ", bugId));
+      String srcBug = p.matcher(desc).group(1);
+      System.out.println("for bug " + srcBug);
+      BugObject src = m.get(srcBug);
+      String d = desc.replace(srcBug, src.getIssueId());
+      if (d.equals(desc)) {
+        IssueFactory.getInstance()
+            .newTargetIssue(client, projectId)
+            .updateDiscussion(desc, d, src.getIssueId());
+      }
     }
   }
 }
