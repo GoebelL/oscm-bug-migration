@@ -87,6 +87,11 @@ public class Config {
     return Boolean.valueOf(props.getProperty("migration.productive", "false")).booleanValue();
   }
 
+  public String getFromDate() {
+      return props.getProperty("migration.fromDate", "");
+  }
+  
+  
   private String ensure(Properties p, String key) { // TODO Auto-generated method stub
     String value = p.getProperty(key);
     if (value == null || value.trim().isEmpty()) {

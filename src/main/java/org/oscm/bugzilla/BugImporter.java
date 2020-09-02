@@ -106,10 +106,11 @@ public class BugImporter {
 
     String l =
         String.format(
-            "%s,%s,%s,%s,%s,%s,%s",
+            "%s,%s,%s,%s,%s,%s,%s,%s",
             getProjectLabel(),
             getIssueTypeLabel(bug),
             getIssueStateLabel(bug),
+            getIssueServerityLabel(bug),
             getIssuePrioLabel(bug),
             getVersionLabels(bug),
             getComponentLabels(bug),
@@ -118,6 +119,10 @@ public class BugImporter {
       l += (",resolution: " + bug.getResolution().getName());
     }
     return l;
+  }
+
+  private String getIssueServerityLabel(b4j.core.Issue bug) {
+    return "severity: " + bug.getSeverity().getName();
   }
 
   private String getComponentLabels(b4j.core.Issue bug) {
@@ -221,28 +226,5 @@ public class BugImporter {
       System.out.println(String.format("GitLab issue %s deleted.", url));
     }
     allIssues = null;
-  }
-
-  public void updateComment(Map<String, BugObject> m, CommentObject c, BugObject o)
-      throws NumberFormatException, GitLabApiException {
-    updateCommentForPattern(m, c, DUPLICATE_PATTERN, o.getBugId());
-    updateCommentForPattern(m, c, BUG_PATTERN, o.getBugId());
-  }
-
-  private void updateCommentForPattern(Map<String, BugObject> m, CommentObject c, Pattern p, String bugId)
-      throws GitLabApiException {
-    String desc = c.getDescription();
-    if (desc.matches(p.pattern())) {
-      System.out.print(String.format("[%s] Found matching link ", bugId));
-      String srcBug = p.matcher(desc).group(1);
-      System.out.println("for bug " + srcBug);
-      BugObject src = m.get(srcBug);
-      String d = desc.replace(srcBug, src.getIssueId());
-      if (d.equals(desc)) {
-        IssueFactory.getInstance()
-            .newTargetIssue(client, projectId)
-            .updateDiscussion(desc, d, src.getIssueId());
-      }
-    }
   }
 }

@@ -13,10 +13,10 @@ import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.text.DateFormat;
+import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -24,11 +24,11 @@ import java.util.regex.Pattern;
 import org.apache.commons.configuration.ConfigurationException;
 import org.gitlab4j.api.GitLabApiException;
 import org.oscm.bugzilla.model.BugObject;
-import org.oscm.bugzilla.model.CommentObject;
 
 import b4j.core.DefaultIssue;
 import b4j.core.DefaultSearchData;
 import b4j.core.Issue;
+import b4j.core.SearchResultCountCallback;
 import b4j.core.session.BugzillaHttpSession;
 import b4j.util.HttpSessionParams;
 import rs.baselib.security.AuthorizationCallback;
@@ -48,10 +48,36 @@ public class Migration {
     }
   }
 
+  private int bugCount = 0;
+  private SearchResultCountCallback scb =
+      new SearchResultCountCallback() {
+
+        @Override
+        public void setResultCount(int resultCount) {
+          bugCount = resultCount;
+        }
+      };
+
   public static final DateFormat DATEFORMAT = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 
   private String[] credentials = new String[2];
   Map<String, BugObject> map = Collections.synchronizedMap(new HashMap<String, BugObject>());
+
+  private void applyDateFilter(DefaultSearchData d) {
+    String fromDate = CONFIG.getFromDate();
+    if (fromDate.trim().length() > 0) {
+      try {
+        new SimpleDateFormat("yyyy-MM-dd").parse(fromDate);
+      } catch (ParseException e) {
+        throw new RuntimeException(
+            "Failed to parse given migration.fromDate as yyyy-MM-dd. Check your config.properties.",
+            e);
+      }
+      d.add("chfield", "[Bug creation]");
+      d.add("chfieldfrom", fromDate);
+      d.add("chfieldto", "Now");
+    }
+  }
 
   @SuppressWarnings("boxing")
   public void run(String[] args) throws ConfigurationException, GitLabApiException, IOException {
@@ -65,56 +91,39 @@ public class Migration {
 
       gitLab.connect(CONFIG.GITLAB_BASEURL, credentials, CONFIG.TARGET_PROJECT_ID);
 
-      if (adaptLinksOnly(args)) {
-        handleAdaptLinks(gitLab, map);
-        System.out.println("Bug links adapted.");
-      } else {
-        handleDelete(args, gitLab);
-
+      handleDelete(args, gitLab);
+      if (doImport(args)) {
         DefaultSearchData search = new DefaultSearchData();
         search.add("product", CONFIG.SOURCE_PROJECT);
         search.add("limit", "0");
+        applyDateFilter(search);
 
-        Iterable<Issue> i = session.searchBugs(search, null);
+        Iterable<Issue> i = session.searchBugs(search, scb);
+        System.out.println(String.format("Got %s bugs. Now importing each one...", bugCount));
         for (Issue bug : i) {
           if (!gitLab.importIssue(bug, map)) {
-            continue;
+             continue;
           }
         }
         System.out.println(String.format("%s GitLab issues imported.", map.entrySet().size()));
       }
+
       session.close();
     }
   }
 
-  private void handleAdaptLinks(BugImporter gitLab, Map<String, BugObject> m) {
-    m.entrySet().stream().forEach(e -> replace(gitLab, m, e.getValue()));
-  }
-
-  private void replace(BugImporter gitLab, Map<String, BugObject> m, BugObject o) {
-    Iterator<CommentObject> i = o.getComments().iterator();
-    while (i.hasNext()) {
-      try {
-        gitLab.updateComment(m, i.next(), o);
-      } catch (Exception e) {
-        Logger.logError(e);
-      }
-    }
+  private boolean doImport(String[] args) {
+    String deleteOnly = CmdLine.parseArguments(args).get("-do");
+    return deleteOnly == null;
   }
 
   private void handleDelete(String[] args, BugImporter gitLab) throws GitLabApiException {
     String delete = CmdLine.parseArguments(args).get("-d");
-    if (delete != null) {
+    String deleteOnly = CmdLine.parseArguments(args).get("-do");
+
+    if (delete != null || deleteOnly != null) {
       gitLab.deleteAllIssues();
     }
-  }
-
-  private boolean adaptLinksOnly(String[] args) throws GitLabApiException {
-    String adaptOnly = CmdLine.parseArguments(args).get("-alo");
-    if (adaptOnly != null && adaptOnly.equalsIgnoreCase("true")) {
-      return true;
-    }
-    return false;
   }
 
   public static String replaceText(String str) {
@@ -127,18 +136,38 @@ public class Migration {
   }
 
   private static String replaceBugId(String str) {
-    String bugPattern = "bug.[0-9]*";
-    Pattern p = Pattern.compile("bug.([0-9]+)");
+    str = fixDuplicateMsg(str);
+    StringBuffer sb = new StringBuffer();
+    Pattern p = Pattern.compile("([b|B]ug)\\s([0-9]+)");
     Matcher m = p.matcher(str);
-    if (m.find()) {
-      String srcBug = m.group(1);
+    while (m.find()) {
+      String srcBug = m.group(2);
       String query = String.format("%s&group_id=&project_id=%s", srcBug, CONFIG.TARGET_PROJECT_ID);
       query =
           "http://estscm1.intern.est.fujitsu.com/search?utf8=%E2%9C%93&search="
               + query
               + "&scope=issues";
-      String link = String.format("<a href=\"%s\">bug %s<a>", query, srcBug);
-      str = str.replace(srcBug, link);
+      String link = String.format("<a href=\"%s\">%s %s<a>", query, m.group(1), srcBug);
+
+      str = m.replaceFirst(link); // str.replace(srcBug, link);
+      int end = str.indexOf(link) + link.length();
+      sb.append(str.substring(0, end));
+      str = str.substring(end);
+      m = p.matcher(str);
+    }
+    if (sb.length() > 0) {
+      sb.append(str);
+      return sb.toString();
+    }
+    return str;
+  }
+
+  static String fixDuplicateMsg(String str) {
+    Pattern p = Pattern.compile("duplicate\\sof\\s([0-9]+)");
+    Matcher m = p.matcher(str);
+    if (m.find()) {
+      String srcBug = m.group(1);
+      str = m.replaceFirst("duplicate of bug " + srcBug);
     }
     return str;
   }
@@ -150,12 +179,9 @@ public class Migration {
 
   void readCredentials(String[] args) throws IOException {
     if (args.length < 1) {
-
       credentials[0] = CmdLine.readLine("Username: ");
     } else {
-
       Map<String, String> opts = CmdLine.parseArguments(args, "-u");
-
       credentials[0] = opts.get("-u");
     }
 
