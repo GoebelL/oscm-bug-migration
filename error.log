@@ -1,0 +1,114 @@
+
+[2020-09-02 02:03:35] org.gitlab4j.api.GitLabApiException: The following fields have validation errors: title
+	 in org.gitlab4j.api.AbstractApi.validate(AbstractApi.java:633)
+	 in org.gitlab4j.api.AbstractApi.post(AbstractApi.java:286)
+	 in org.gitlab4j.api.IssuesApi.createIssue(IssuesApi.java:436)
+	 in org.oscm.bugzilla.gitlab.GitLabIssue.create(GitLabIssue.java:59)
+	 in org.oscm.bugzilla.BugImporter.importIssue(BugImporter.java:210)
+	 in org.oscm.bugzilla.BugImporter.importIssue(BugImporter.java:161)
+	 in org.oscm.bugzilla.Migration.run(Migration.java:107)
+	 in org.oscm.bugzilla.Migration.main(Migration.java:216)
+
+[2020-09-02 02:08:14] org.gitlab4j.api.GitLabApiException: The following fields have validation errors: title
+	 in org.gitlab4j.api.AbstractApi.validate(AbstractApi.java:633)
+	 in org.gitlab4j.api.AbstractApi.post(AbstractApi.java:286)
+	 in org.gitlab4j.api.IssuesApi.createIssue(IssuesApi.java:436)
+	 in org.oscm.bugzilla.gitlab.GitLabIssue.create(GitLabIssue.java:59)
+	 in org.oscm.bugzilla.BugImporter.importIssue(BugImporter.java:210)
+	 in org.oscm.bugzilla.BugImporter.importIssue(BugImporter.java:161)
+	 in org.oscm.bugzilla.Migration.run(Migration.java:107)
+	 in org.oscm.bugzilla.Migration.main(Migration.java:216)
+
+[2020-09-02 02:24:26] org.gitlab4j.api.GitLabApiException: The following fields have validation errors: title
+	 in org.gitlab4j.api.AbstractApi.validate(AbstractApi.java:633)
+	 in org.gitlab4j.api.AbstractApi.post(AbstractApi.java:286)
+	 in org.gitlab4j.api.IssuesApi.createIssue(IssuesApi.java:436)
+	 in org.oscm.bugzilla.gitlab.GitLabIssue.create(GitLabIssue.java:59)
+	 in org.oscm.bugzilla.BugImporter.importIssue(BugImporter.java:210)
+	 in org.oscm.bugzilla.BugImporter.importIssue(BugImporter.java:161)
+	 in org.oscm.bugzilla.Migration.run(Migration.java:107)
+	 in org.oscm.bugzilla.Migration.main(Migration.java:216)
+
+[2020-09-02 02:31:58] org.gitlab4j.api.GitLabApiException: The following fields have validation errors: title
+	 in org.gitlab4j.api.AbstractApi.validate(AbstractApi.java:633)
+	 in org.gitlab4j.api.AbstractApi.post(AbstractApi.java:286)
+	 in org.gitlab4j.api.IssuesApi.createIssue(IssuesApi.java:436)
+	 in org.oscm.bugzilla.gitlab.GitLabIssue.create(GitLabIssue.java:59)
+	 in org.oscm.bugzilla.BugImporter.importIssue(BugImporter.java:210)
+	 in org.oscm.bugzilla.BugImporter.importIssue(BugImporter.java:161)
+	 in org.oscm.bugzilla.Migration.run(Migration.java:107)
+	 in org.oscm.bugzilla.Migration.main(Migration.java:216)
+
+[2020-09-02 02:36:28] org.gitlab4j.api.GitLabApiException: The following fields have validation errors: title
+	 in org.gitlab4j.api.AbstractApi.validate(AbstractApi.java:633)
+	 in org.gitlab4j.api.AbstractApi.post(AbstractApi.java:286)
+	 in org.gitlab4j.api.IssuesApi.createIssue(IssuesApi.java:436)
+	 in org.oscm.bugzilla.gitlab.GitLabIssue.create(GitLabIssue.java:59)
+	 in org.oscm.bugzilla.BugImporter.importIssue(BugImporter.java:210)
+	 in org.oscm.bugzilla.BugImporter.importIssue(BugImporter.java:161)
+	 in org.oscm.bugzilla.Migration.run(Migration.java:107)
+	 in org.oscm.bugzilla.Migration.main(Migration.java:216)
+
+[2020-09-02 02:42:24] org.gitlab4j.api.GitLabApiException: The following fields have validation errors: title
+	 in org.gitlab4j.api.AbstractApi.validate(AbstractApi.java:633)
+	 in org.gitlab4j.api.AbstractApi.post(AbstractApi.java:286)
+	 in org.gitlab4j.api.IssuesApi.createIssue(IssuesApi.java:436)
+	 in org.oscm.bugzilla.gitlab.GitLabIssue.create(GitLabIssue.java:59)
+	 in org.oscm.bugzilla.BugImporter.importIssue(BugImporter.java:210)
+	 in org.oscm.bugzilla.BugImporter.importIssue(BugImporter.java:161)
+	 in org.oscm.bugzilla.Migration.run(Migration.java:107)
+	 in org.oscm.bugzilla.Migration.main(Migration.java:216)
+
+[2020-09-02 08:34:22] org.gitlab4j.api.GitLabApiException: The following fields have validation errors: title
+	 in org.gitlab4j.api.AbstractApi.validate(AbstractApi.java:633)
+	 in org.gitlab4j.api.AbstractApi.post(AbstractApi.java:286)
+	 in org.gitlab4j.api.IssuesApi.createIssue(IssuesApi.java:436)
+	 in org.oscm.bugzilla.gitlab.GitLabIssue.create(GitLabIssue.java:59)
+	 in org.oscm.bugzilla.BugImporter.importIssue(BugImporter.java:210)
+	 in org.oscm.bugzilla.BugImporter.importIssue(BugImporter.java:161)
+	 in org.oscm.bugzilla.Migration.run(Migration.java:107)
+	 in org.oscm.bugzilla.Migration.main(Migration.java:216)
+
+[2020-09-03 17:07:59] java.util.UnknownFormatConversionException: Conversion = '1'
+	 in java.util.Formatter.checkText(Formatter.java:2579)
+	 in java.util.Formatter.parse(Formatter.java:2555)
+	 in java.util.Formatter.format(Formatter.java:2501)
+	 in java.util.Formatter.format(Formatter.java:2455)
+	 in java.lang.String.format(String.java:2940)
+	 in org.oscm.bugzilla.BugImporter.importIssue(BugImporter.java:256)
+	 in org.oscm.bugzilla.BugImporter.importIssue(BugImporter.java:185)
+	 in org.oscm.bugzilla.Migration.run(Migration.java:105)
+	 in org.oscm.bugzilla.Migration.main(Migration.java:167)
+
+[2020-09-04 09:57:31] java.util.UnknownFormatConversionException: Conversion = '1'
+	 in java.util.Formatter.checkText(Formatter.java:2579)
+	 in java.util.Formatter.parse(Formatter.java:2555)
+	 in java.util.Formatter.format(Formatter.java:2501)
+	 in java.util.Formatter.format(Formatter.java:2455)
+	 in java.lang.String.format(String.java:2940)
+	 in org.oscm.bugzilla.BugImporter.importIssue(BugImporter.java:256)
+	 in org.oscm.bugzilla.BugImporter.importIssue(BugImporter.java:185)
+	 in org.oscm.bugzilla.Migration.run(Migration.java:108)
+	 in org.oscm.bugzilla.Migration.main(Migration.java:170)
+
+[2020-09-04 10:18:21] java.util.UnknownFormatConversionException: Conversion = '1'
+	 in java.util.Formatter.checkText(Formatter.java:2579)
+	 in java.util.Formatter.parse(Formatter.java:2555)
+	 in java.util.Formatter.format(Formatter.java:2501)
+	 in java.util.Formatter.format(Formatter.java:2455)
+	 in java.lang.String.format(String.java:2940)
+	 in org.oscm.bugzilla.BugImporter.importIssue(BugImporter.java:256)
+	 in org.oscm.bugzilla.BugImporter.importIssue(BugImporter.java:185)
+	 in org.oscm.bugzilla.Migration.run(Migration.java:105)
+	 in org.oscm.bugzilla.Migration.main(Migration.java:167)
+
+[2020-09-04 10:27:25] java.util.UnknownFormatConversionException: Conversion = '1'
+	 in java.util.Formatter.checkText(Formatter.java:2579)
+	 in java.util.Formatter.parse(Formatter.java:2555)
+	 in java.util.Formatter.format(Formatter.java:2501)
+	 in java.util.Formatter.format(Formatter.java:2455)
+	 in java.lang.String.format(String.java:2940)
+	 in org.oscm.bugzilla.BugImporter.importIssue(BugImporter.java:256)
+	 in org.oscm.bugzilla.BugImporter.importIssue(BugImporter.java:185)
+	 in org.oscm.bugzilla.Migration.run(Migration.java:105)
+	 in org.oscm.bugzilla.Migration.main(Migration.java:167)

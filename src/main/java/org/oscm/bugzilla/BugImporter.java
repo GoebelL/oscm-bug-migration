@@ -12,11 +12,11 @@ package org.oscm.bugzilla;
 import java.io.IOException;
 import java.net.ConnectException;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import org.gitlab4j.api.GitLabApi;
@@ -41,10 +41,6 @@ public class BugImporter {
   private List<Issue> allIssues = null;
   private BugzillaHttpSession session = null;
 
-  private Pattern DUPLICATE_PATTERN =
-      Pattern.compile("(.*has/sbeen/smarked/sas/sa/sduplicate/sof/sbug/s)(.*)");
-  private Pattern BUG_PATTERN = Pattern.compile(".*bug.\\#\\s+([0-9]*)");
-
   /** @param session */
   public BugImporter(BugzillaHttpSession session) {
     this.session = session;
@@ -65,10 +61,35 @@ public class BugImporter {
     this.projectId = projectId;
   }
 
-  String getDefaultIssueHeader(String user, Date time, String description) {
-    return String.format(
-        "Originally reported from: **%s** at %s.\n\n%s",
-        user, Migration.DATEFORMAT.format(time), Migration.replaceText(description));
+  String getDefaultIssueHeader(b4j.core.Issue bug) {
+
+    StringBuffer b = new StringBuffer();
+    String user = bug.getReporter().getId();
+    Date time = bug.getCreationTimestamp();
+    String description = bug.getDescription();
+    String cc = asString(bug, "cc");
+    if (cc.length() > 0) b.append(String.format("<br>***CC***: %s<br>", cc));
+
+    String os = asString(bug, "os");
+    if (os.length() > 0) b.append(String.format("<br>***Operating System***: %s<br>", os));
+
+    String pf = asString(bug, "rep_platform");
+    if (pf.length() > 0) b.append(String.format("<br>***Platform***: %s<br>", pf));
+
+    String fb = asString(bug, "cf_foundby");
+    if (fb.length() > 0) b.append(String.format("<br>***Found by***: %s<br>", fb));
+
+    String url = asString(bug, "url");
+    if (url.length() > 0) b.append(String.format("<br>***Found by***: %s<br><br>", url));
+
+    b.append(
+        String.format(
+            "Originally reported from: **%s** at %s.\n\n%s",
+            user,
+            Migration.DATEFORMAT.format(time),
+            DescriptionFormatter.replaceText(description)));
+
+    return b.toString();
   }
 
   List<Issue> getAllIssues() throws GitLabApiException {
@@ -137,7 +158,25 @@ public class BugImporter {
 
   private String getVersionLabels(b4j.core.Issue bug) {
     StringBuffer b = new StringBuffer();
-    for (Iterator<Version> it = bug.getAffectedVersions().iterator(); it.hasNext(); ) {
+
+    Collection<Version> c = null;
+    if (bug.getAffectedVersionCount() > 0) {
+      b.append(versionList("Affected: ", bug.getAffectedVersions()));
+    }
+    if (bug.getFixVersionCount() > 0) {
+      b.append(versionList("Version: ", bug.getFixVersions()));
+    }
+    if (bug.getPlannedVersionCount() > 0) {
+      b.append(versionList("Planned: ", bug.getPlannedVersions()));
+    }
+    return b.toString();
+  }
+
+  private String versionList(String label, Collection<Version> c) {
+    StringBuffer b = new StringBuffer();
+
+    for (Iterator<Version> it = c.iterator(); it.hasNext(); ) {
+      b.append(label);
       b.append(it.next().getName());
       if (it.hasNext()) b.append(",");
     }
@@ -145,12 +184,17 @@ public class BugImporter {
   }
 
   private Object getMilestoneLabel(b4j.core.Issue bug) {
-    StringBuffer b = new StringBuffer();
+
+    return "milestone: " + asString(bug, "target_milestone");
+    /*
+
+
     for (Iterator<Version> it = bug.getFixVersions().iterator(); it.hasNext(); ) {
       b.append("milestone: " + it.next().getName());
       if (it.hasNext()) b.append(",");
     }
     return b.toString();
+    */
   }
 
   public boolean importIssue(b4j.core.Issue bug, Map<String, BugObject> map)
@@ -194,7 +238,6 @@ public class BugImporter {
     List<CommentObject> comments = new ArrayList<CommentObject>();
     for (Discussion d : discussions) {
       d.getNotes().stream().forEach(n -> comments.add(new CommentObject(n.getBody())));
-      ;
     }
     return new BugObject(bug, comments, String.valueOf(i.getIid()));
   }
@@ -210,13 +253,27 @@ public class BugImporter {
     }
   }
 
+  @SuppressWarnings("unchecked")
+  private String asString(b4j.core.Issue bug, String propertyName) {
+    Object o = bug.get(propertyName);
+    Collection<String> names = new ArrayList<String>();
+    if (o != null) {
+      if (!(o instanceof Collection)) {
+        names = new ArrayList<String>();
+        if (o instanceof String) names.add((String) o);
+      } else {
+        names = (Collection<String>) o;
+      }
+    }
+    return String.join(", ", names);
+  }
+
   private Issue importIssue(TargetIssue ti, b4j.core.Issue bug, final String labels)
       throws GitLabApiException {
-    return ti.create(
-        bug,
-        labels,
-        getDefaultIssueHeader(
-            bug.getReporter().getId(), bug.getCreationTimestamp(), bug.getDescription()));
+
+    String version = asString(bug, "Version");
+
+    return ti.create(bug, labels, getDefaultIssueHeader(bug));
   }
 
   public void deleteAllIssues() throws GitLabApiException {

@@ -50,7 +50,7 @@ public class Config {
     return instance;
   }
 
-  public static Config load(String path) throws IOException {
+  private static Config load(String path) throws IOException {
 
     Properties props = new Properties();
     FileInputStream fis = null;

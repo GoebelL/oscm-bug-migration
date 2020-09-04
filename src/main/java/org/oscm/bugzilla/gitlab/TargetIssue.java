@@ -15,6 +15,7 @@ import java.util.Map;
 import org.gitlab4j.api.GitLabApiException;
 import org.gitlab4j.api.models.Discussion;
 import org.gitlab4j.api.models.Issue;
+import org.oscm.bugzilla.DescriptionFormatter;
 import org.oscm.bugzilla.Migration;
 
 import b4j.core.Attachment;
@@ -64,7 +65,7 @@ public interface TargetIssue {
     sb.append(" at ");
     sb.append(Migration.DATEFORMAT.format(c.getUpdateTimestamp()));
     sb.append(":\n\n");
-    sb.append(Migration.replaceText(c.getTheText()));
+    sb.append(DescriptionFormatter.replaceText(c.getTheText()));
     return sb.toString();
   }
 

@@ -18,8 +18,6 @@ import java.text.SimpleDateFormat;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import org.apache.commons.configuration.ConfigurationException;
 import org.gitlab4j.api.GitLabApiException;
@@ -85,6 +83,9 @@ public class Migration {
 
     Map<String, BugObject> map = readLogFile();
 
+    UIPanel.popUp();
+    printHeader();
+
     BugzillaHttpSession session = getSession();
     if (session.open()) {
       BugImporter gitLab = new BugImporter(session);
@@ -92,6 +93,7 @@ public class Migration {
       gitLab.connect(CONFIG.GITLAB_BASEURL, credentials, CONFIG.TARGET_PROJECT_ID);
 
       handleDelete(args, gitLab);
+
       if (doImport(args)) {
         DefaultSearchData search = new DefaultSearchData();
         search.add("product", CONFIG.SOURCE_PROJECT);
@@ -102,7 +104,7 @@ public class Migration {
         System.out.println(String.format("Got %s bugs. Now importing each one...", bugCount));
         for (Issue bug : i) {
           if (!gitLab.importIssue(bug, map)) {
-             continue;
+            continue;
           }
         }
         System.out.println(String.format("%s GitLab issues imported.", map.entrySet().size()));
@@ -117,6 +119,23 @@ public class Migration {
     return deleteOnly == null;
   }
 
+  private void printHeader() {
+    System.out.println(
+        "*****************************************************************************");
+    System.out.println(
+        "*                                                                           *");
+    System.out.println(
+        "*  Copyright FUJITSU LIMITED 2020                                           *");
+    System.out.println(
+        "*                                                                           *");
+    System.out.println(
+        "*  Created: 2020-09-04, L. Goebel                                           *");
+    System.out.println(
+        "*                                                                           *");
+    System.out.println(
+        "*****************************************************************************\n\n");
+  }
+
   private void handleDelete(String[] args, BugImporter gitLab) throws GitLabApiException {
     String delete = CmdLine.parseArguments(args).get("-d");
     String deleteOnly = CmdLine.parseArguments(args).get("-do");
@@ -126,55 +145,8 @@ public class Migration {
     }
   }
 
-  public static String replaceText(String str) {
-    String s = replaceNL(str);
-    return replaceBugId(s);
-  }
-
-  private static String replaceNL(String str) {
-    return str.replace("\n", "<br>");
-  }
-
-  private static String replaceBugId(String str) {
-    str = fixDuplicateMsg(str);
-    StringBuffer sb = new StringBuffer();
-    Pattern p = Pattern.compile("([b|B]ug)\\s([0-9]+)");
-    Matcher m = p.matcher(str);
-    while (m.find()) {
-      String srcBug = m.group(2);
-      String query = String.format("%s&group_id=&project_id=%s", srcBug, CONFIG.TARGET_PROJECT_ID);
-      query =
-          "http://estscm1.intern.est.fujitsu.com/search?utf8=%E2%9C%93&search="
-              + query
-              + "&scope=issues";
-      String link = String.format("<a href=\"%s\">%s %s<a>", query, m.group(1), srcBug);
-
-      str = m.replaceFirst(link); // str.replace(srcBug, link);
-      int end = str.indexOf(link) + link.length();
-      sb.append(str.substring(0, end));
-      str = str.substring(end);
-      m = p.matcher(str);
-    }
-    if (sb.length() > 0) {
-      sb.append(str);
-      return sb.toString();
-    }
-    return str;
-  }
-
-  static String fixDuplicateMsg(String str) {
-    Pattern p = Pattern.compile("duplicate\\sof\\s([0-9]+)");
-    Matcher m = p.matcher(str);
-    if (m.find()) {
-      String srcBug = m.group(1);
-      str = m.replaceFirst("duplicate of bug " + srcBug);
-    }
-    return str;
-  }
-
   private Map<String, BugObject> readLogFile() throws IOException {
-    map = Logger.instance().read();
-    return map;
+    return Logger.instance().read();
   }
 
   void readCredentials(String[] args) throws IOException {

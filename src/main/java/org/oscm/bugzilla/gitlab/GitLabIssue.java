@@ -21,7 +21,6 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
 import org.gitlab4j.api.Constants.StateEvent;
@@ -100,7 +99,11 @@ public class GitLabIssue implements TargetIssue {
     attachmentCnt = 1;
     List<Discussion> dis = new ArrayList<Discussion>();
     insertBugAttachemntInfos(map, attachmentCnt, i);
+    final String text = bug.getDescription();
     for (Comment c : bug.getComments()) {
+      // first comment we get from b4j seems to be equal to the bug description -> skip
+      if (text.equals(c.getTheText())) continue;
+
       String author = c.getAuthor().getName();
       String body = createComment(c);
       Date creation = c.getCreationTimestamp();
@@ -116,7 +119,7 @@ public class GitLabIssue implements TargetIssue {
             map.remove(aId);
           }
         }
-      } catch (GitLabApiException e) { // TODO Auto-generated catch block
+      } catch (GitLabApiException e) {
         Logger.logError(e);
       }
     }
