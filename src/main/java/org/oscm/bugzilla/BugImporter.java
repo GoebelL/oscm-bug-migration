@@ -70,7 +70,7 @@ public class BugImporter {
     String cc = asString(bug, "cc");
     if (cc.length() > 0) b.append(String.format("<br>***CC***: %s<br>", cc));
 
-    String os = asString(bug, "os");
+    String os = asString(bug, "op_sys");
     if (os.length() > 0) b.append(String.format("<br>***Operating System***: %s<br>", os));
 
     String pf = asString(bug, "rep_platform");
@@ -80,8 +80,11 @@ public class BugImporter {
     if (fb.length() > 0) b.append(String.format("<br>***Found by***: %s<br>", fb));
 
     String url = asString(bug, "url");
-    if (url.length() > 0) b.append(String.format("<br>***Found by***: %s<br><br>", url));
-
+    if (url.length() > 0) b.append(String.format("<br>***URL***: %s<br><br>", url));
+    else {
+      url = asString(bug, "cf_externalreference");
+      if (url.length() > 0) b.append(String.format("<br>***URL***: %s<br><br>", url));
+    }
     b.append(
         String.format(
             "Originally reported from: **%s** at %s.\n\n%s",
@@ -124,7 +127,7 @@ public class BugImporter {
   }
 
   private String getLabels(b4j.core.Issue bug) {
-
+   
     String l =
         String.format(
             "%s,%s,%s,%s,%s,%s,%s,%s",
@@ -136,6 +139,16 @@ public class BugImporter {
             getVersionLabels(bug),
             getComponentLabels(bug),
             getMilestoneLabel(bug));
+    String pf = asString(bug, "rep_platform");
+    if (pf.length() > 0) {
+        l+=(",platform: " + pf);
+    }
+ 
+    String os = asString(bug, "op_sys");
+    if (os.length() > 0) {
+        l+=(",os: " + os);
+    }
+    
     if (bug.isResolved() || bug.isClosed()) {
       l += (",resolution: " + bug.getResolution().getName());
     }
@@ -161,13 +174,13 @@ public class BugImporter {
 
     Collection<Version> c = null;
     if (bug.getAffectedVersionCount() > 0) {
-      b.append(versionList("Affected: ", bug.getAffectedVersions()));
+      b.append(versionList("affected: ", bug.getAffectedVersions()));
     }
     if (bug.getFixVersionCount() > 0) {
-      b.append(versionList("Version: ", bug.getFixVersions()));
+      b.append(versionList("version: ", bug.getFixVersions()));
     }
     if (bug.getPlannedVersionCount() > 0) {
-      b.append(versionList("Planned: ", bug.getPlannedVersions()));
+      b.append(versionList("planned: ", bug.getPlannedVersions()));
     }
     return b.toString();
   }
@@ -185,7 +198,7 @@ public class BugImporter {
 
   private Object getMilestoneLabel(b4j.core.Issue bug) {
 
-    return "milestone: " + asString(bug, "target_milestone");
+    return "target-milestone: " + asString(bug, "target_milestone");
     /*
 
 
@@ -214,8 +227,7 @@ public class BugImporter {
 
     // Close for non-open bugs
     closeIfNotOpen(ti, bug, i.getLabels().stream().collect(Collectors.joining(",")), i);
-
-    // Log
+    
     writeToLogs(bug, discussions, map, i);
 
     return true;

@@ -91,6 +91,10 @@ public class Config {
       return props.getProperty("migration.fromDate", "");
   }
   
+  public String getDefaultAssigneeEmail() {
+      return props.getProperty("gitlab.defaultAssignee", "");
+  }
+  
   
   private String ensure(Properties p, String key) { // TODO Auto-generated method stub
     String value = p.getProperty(key);

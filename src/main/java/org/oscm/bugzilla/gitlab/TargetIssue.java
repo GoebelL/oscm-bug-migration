@@ -81,7 +81,9 @@ public interface TargetIssue {
 
   public void updateDiscussion(String old, String replace, String id)
       throws NumberFormatException, GitLabApiException;
-
+ 
+  public void assignIssue(b4j.core.Issue bug, Issue i);
+  
   /** Delete the issue with the given Id. */
   public void delete(Integer issueId) throws GitLabApiException;
 

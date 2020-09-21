@@ -96,7 +96,7 @@ public class GitLabIssueTest implements TargetIssue {
   }
 
   private String appendBugAttachmentInfos(
-      Map<String, Attachment> map, int cnt, String cm) { // TODO Auto-generated method stub
+      Map<String, Attachment> map, int cnt, String cm) { 
     for (String key : map.keySet()) {
       cm = appendCommentAttachmentInfos(map, cm, cnt, key);
     }
@@ -155,4 +155,7 @@ public class GitLabIssueTest implements TargetIssue {
   /** @see org.oscm.bugzilla.gitlab.TargetIssue#delete(java.lang.Integer) */
   @Override
   public void delete(Integer issueId) throws GitLabApiException {}
+
+  @Override
+  public void assignIssue(b4j.core.Issue bug, Issue i) {}
 }

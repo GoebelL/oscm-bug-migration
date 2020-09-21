@@ -16,7 +16,7 @@ import java.util.regex.Pattern;
 
 /** @author goebel */
 public class DescriptionFormatter {
-    
+
   public static String replaceText(String str) {
     String s = replaceNL(str);
     s = fixCodeSections(s);
@@ -32,7 +32,7 @@ public class DescriptionFormatter {
     Pattern p = Pattern.compile("\\`{3}(.*?)\\`{3}");
     Matcher m = p.matcher(text);
     Map<String, String> map = new HashMap<String, String>();
-  
+
     while (m.find()) {
       String match = text.substring(m.start(), m.end());
       if (match.contains("<br>")) {
@@ -49,12 +49,14 @@ public class DescriptionFormatter {
 
   static String replaceBugId(String str) {
     str = fixDuplicateMsg(str);
+    str = replaceLink(str);
     StringBuffer sb = new StringBuffer();
     Pattern p = Pattern.compile("([b|B]ug)\\s([0-9]+)");
     Matcher m = p.matcher(str);
     while (m.find()) {
       String srcBug = m.group(2);
-      String query = String.format("%s&group_id=&project_id=%s", srcBug, Migration.CONFIG.TARGET_PROJECT_ID);
+      String query =
+          String.format("%s&group_id=&project_id=%s", srcBug, Migration.CONFIG.TARGET_PROJECT_ID);
       query =
           "http://estscm1.intern.est.fujitsu.com/search?utf8=%E2%9C%93&search="
               + query
@@ -70,6 +72,21 @@ public class DescriptionFormatter {
     if (sb.length() > 0) {
       sb.append(str);
       return sb.toString();
+    }
+    return str;
+  }
+
+  static String replaceLink(String str) {
+    String baseUrl = Config.getInstance().BUGZILLA_BASEURL;
+    StringBuffer sb = new StringBuffer();
+
+    Pattern p = Pattern.compile(Pattern.quote(baseUrl) + "[^=]*=([0-9]+)");
+    Matcher m = p.matcher(str);
+
+    while (m.find()) {
+      String srcBug = m.group(1);
+      str = m.replaceFirst("bug " + srcBug); //
+      m = p.matcher(str);
     }
     return str;
   }

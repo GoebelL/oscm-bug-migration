@@ -15,6 +15,7 @@ import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Date;
 import java.util.HashMap;
@@ -26,10 +27,12 @@ import java.util.stream.Stream;
 import org.gitlab4j.api.Constants.StateEvent;
 import org.gitlab4j.api.GitLabApi;
 import org.gitlab4j.api.GitLabApiException;
+import org.gitlab4j.api.models.AccessLevel;
 import org.gitlab4j.api.models.Discussion;
 import org.gitlab4j.api.models.FileUpload;
 import org.gitlab4j.api.models.Issue;
 import org.gitlab4j.api.models.Note;
+import org.oscm.bugzilla.Config;
 import org.oscm.bugzilla.Logger;
 import org.oscm.bugzilla.Migration;
 
@@ -52,6 +55,8 @@ public class GitLabIssue implements TargetIssue {
   @Override
   public Issue create(b4j.core.Issue bug, final String labels, String header)
       throws GitLabApiException {
+    List<Integer> assigneeIds = mapAssigneeId(bug);
+
     Issue i =
         client
             .getIssuesApi()
@@ -60,7 +65,7 @@ public class GitLabIssue implements TargetIssue {
                 getSummary(bug),
                 header,
                 null,
-                null,
+                assigneeIds,
                 null,
                 labels,
                 bug.getCreationTimestamp(),
@@ -70,10 +75,60 @@ public class GitLabIssue implements TargetIssue {
     return i;
   }
 
+  private Map<String, List<Integer>> email2GitLabUserId = new HashMap<String, List<Integer>>(20);
+
+  private List<Integer> mapAssigneeId(String email) {
+    List<Integer> id = email2GitLabUserId.get(email);
+    if (id == null) {
+      try {
+        Integer uid = client.getUserApi().getUserByEmail(email).getId();
+        id = Arrays.asList(new Integer[] {uid});
+        ensureMember(uid);
+        email2GitLabUserId.put(email, id);
+      } catch (Exception e) {
+        String defaultAssignee = Config.getInstance().getDefaultAssigneeEmail().toLowerCase();
+        if (email.equals(defaultAssignee)) {
+          id = Arrays.asList(new Integer[] {Integer.valueOf(-1)});
+          email2GitLabUserId.put(email, id);
+        } else {
+          id = mapAssigneeId(defaultAssignee);
+          email2GitLabUserId.put(email, id);
+        }
+      }
+    }
+    if (id.size() != 1) {
+      return null;
+    }
+    return id;
+  }
+
+  private void ensureMember(Integer uid) {
+
+    try {
+      client.getProjectApi().getMember(projectId, uid);
+      return;
+    } catch (Exception e) {
+      // assume not existing -> HTTP 404
+    }
+    try {
+      client.getProjectApi().addMember(projectId, uid, AccessLevel.GUEST);
+    } catch (GitLabApiException e) {
+      Logger.logError(e);
+    }
+  }
+
+  private List<Integer> mapAssigneeId(b4j.core.Issue bug) {
+    String email = bug.getAssignee().getName();
+    return mapAssigneeId(email);
+  }
+
   @Override
   public void closeIssue(b4j.core.Issue bug, final String labels, Issue i)
       throws GitLabApiException {
+    List<Integer> assigneeIds = mapAssigneeId(bug);
+
     try {
+
       client
           .getIssuesApi()
           .updateIssue(
@@ -82,7 +137,7 @@ public class GitLabIssue implements TargetIssue {
               i.getTitle(),
               i.getDescription(),
               i.getConfidential(),
-              null,
+              assigneeIds,
               null,
               labels,
               StateEvent.CLOSE,
@@ -90,6 +145,17 @@ public class GitLabIssue implements TargetIssue {
               new Date());
     } catch (GitLabApiException e) {
       Logger.logError(e);
+    }
+  }
+
+  @Override
+  public void assignIssue(b4j.core.Issue bug, Issue i) {
+    List<Integer> assigneeIds = mapAssigneeId(bug);
+
+    try {
+      client.getIssuesApi().assignIssue(projectId, i.getIid(), assigneeIds.get(0));
+    } catch (GitLabApiException e) {
+      e.printStackTrace();
     }
   }
 
@@ -215,6 +281,7 @@ public class GitLabIssue implements TargetIssue {
     }
 
     FileUpload fileUpload = client.getProjectApi().uploadFile(projectId, temp, type);
+   
     return fileUpload;
   }
 
