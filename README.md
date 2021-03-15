@@ -15,7 +15,7 @@ Bugzilla and Gitlab are online and accessible with same credentials given by the
 
 3. Open a command-line at `oscm-bug-migration/target`.  
 
-4. Run `oscm-bug-migration-0.0.1-SNAPSHOT-jar-with-dependencies.jar -u <username>.`  
+4. Run `oscm-bug-migration.jar -u <username>.`  
 </p>
 <h3>Configuration</h3>
 
